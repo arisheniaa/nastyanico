@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://arisheniaa.github.io/nastyanico/sitemap.xml
