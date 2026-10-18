@@ -17,6 +17,7 @@ letter-spacing: -0.065em; white-space: nowrap; text-indent: -.07em;
 @media (max-width: 760px) {
 .scene--c .scene__text, .scene--m .scene__text { align-content: start; }
 .scene--f .scene__text { padding-bottom: var(--s8); }
+.scene--f .scene__photo { position: absolute; left: 0; bottom: -6%; height: 126%; object-position: 80% 50%; }
 .cover__sub { grid-column: 1 / 5; }
 .cover__name { grid-column: 1 / 5; font-size: 19.5vw; }
 .scene--c .scene__text { row-gap: var(--s2); }
@@ -38,6 +39,8 @@ padding: calc(var(--hdr) + var(--s4)) 0 var(--s6); }
 .about__h { grid-column: 1 / 5; font-size: 13vw; }
 .about__body { grid-column: 1 / 5; align-self: end; font-size: 6.2vw; line-height: 1.36; }
 .about__body .l { display: inline; }
+.about__body .l--br::before { content: "\A"; white-space: pre; }
+.about { height: var(--scr); padding-bottom: calc(var(--s6) + var(--bar)); }
 }
 @media (min-width: 761px) {
 .scene--c .scene__pin { --scene-bg: #141414; }

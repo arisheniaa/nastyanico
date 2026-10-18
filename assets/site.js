@@ -36,14 +36,17 @@ window.__hdrTone = hdrTone
 const snap = { busy: false, off: false }
 window.__snap = snap
 function magnet(lenis) {
-const vh = () => innerHeight
-let lockUntil = 0, busy = false, ty = null, t = 0, lastT = 0, lastD = 0
+const probe = document.createElement('i')
+probe.style.cssText = 'position:absolute;top:0;left:0;width:0;height:100vh;height:100lvh;visibility:hidden;pointer-events:none'
+document.body.append(probe)
+const scr = () => Math.max(innerHeight, probe.offsetHeight)
+let lockUntil = 0, busy = false, ty = null, t = 0, lastT = 0, hist = []
 const map = () => {
-const max = document.documentElement.scrollHeight - vh(), pts = new Set([0, max]), free = []
+const max = document.documentElement.scrollHeight - innerHeight, pts = new Set([0, max]), free = []
 screens.forEach(s => {
 const top = Math.round(s.getBoundingClientRect().top + scrollY), h = s.offsetHeight
 pts.add(Math.min(top, max))
-if (h > vh() + 2) { const bot = Math.min(top + h - vh(), max); pts.add(bot); free.push([top, bot]) }
+if (h > scr() + 2) { const bot = Math.min(top + h - innerHeight, max); pts.add(bot); free.push([top, bot]) }
 })
 return { pts: [...pts].sort((x, y) => x - y), free }
 }
@@ -52,6 +55,8 @@ const isFree = (dir) => {
 const y = lenis.scroll, { free } = map()
 return free.some(([a, b]) => (dir > 0 ? y >= a - 2 && y < b - 2 : y > a + 2 && y <= b + 2))
 }
+let guard = 0
+const done = () => { clearTimeout(guard); busy = false; snap.busy = false; lockUntil = performance.now() + 120 }
 const page = (dir) => {
 if (busy) return
 clearTimeout(t)
@@ -59,19 +64,22 @@ const y = y0(), { pts } = map()
 const target = dir > 0 ? Math.min(...pts.filter(p => p > y + 2)) : Math.max(...pts.filter(p => p < y - 2))
 if (!isFinite(target)) return
 busy = true; snap.busy = true
-setTimeout(() => { busy = false; snap.busy = false }, 950)
-lenis.scrollTo(target, { duration: .8, easing: (k) => (k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2),
-onComplete: () => { busy = false; snap.busy = false; lockUntil = performance.now() + 200 } })
+guard = setTimeout(done, 1100)
+lenis.scrollTo(target, { duration: .8, force: true, easing: (k) => (k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2),
+onComplete: done })
 }
-const intercept = (dir) => !snap.off && !isFree(dir)
+const intercept = (dir) => !snap.off && menu.hasAttribute('hidden') && !isFree(dir)
+const avg = (n) => { const a = hist.slice(-n); return a.reduce((s, x) => s + x, 0) / a.length }
 addEventListener('wheel', (e) => {
 if (e.ctrlKey || Math.abs(e.deltaY) < Math.abs(e.deltaX)) return
 const dir = Math.sign(e.deltaY); if (!dir || !intercept(dir)) return
 e.preventDefault(); e.stopImmediatePropagation()
-const now = performance.now(), d = Math.abs(e.deltaY)
-const fresh = now - lastT > 220 || d > lastD * 1.6 + 4
-lastT = now; lastD = d
-if (!fresh || busy || now < lockUntil) return
+const now = performance.now(), d = Math.abs(e.deltaY) * (e.deltaMode === 1 ? 40 : 1)
+if (now - lastT > 200) hist = []
+lastT = now; hist.push(d); if (hist.length > 24) hist.shift()
+if (busy || now < lockUntil) return
+if (hist.length > 1 && !(avg(3) >= avg(12) && avg(3) >= 6)) return
+hist = [d]
 page(dir)
 }, { passive: false, capture: true })
 addEventListener('keydown', (e) => {
@@ -80,25 +88,27 @@ const k = e.key, dir = (k === 'ArrowDown' || k === 'PageDown' || (k === ' ' && !
 if (!dir || e.target.closest('input, textarea, [contenteditable], dialog[open]') || !intercept(dir)) return
 e.preventDefault(); if (!busy) page(dir)
 })
-addEventListener('touchstart', (e) => { ty = e.touches[0].clientY }, { passive: true })
+addEventListener('touchstart', (e) => { ty = e.touches.length === 1 ? e.touches[0].clientY : null }, { passive: true })
 addEventListener('touchmove', (e) => {
-if (ty == null) return
+if (ty == null || !e.cancelable) return
 const dir = Math.sign(ty - e.touches[0].clientY)
-if (dir && intercept(dir)) e.preventDefault()
+if (dir ? intercept(dir) : intercept(1) && intercept(-1)) e.preventDefault()
 }, { passive: false })
+addEventListener('touchcancel', () => { ty = null }, { passive: true })
 addEventListener('touchend', (e) => {
 if (ty == null) return
 const dy = ty - e.changedTouches[0].clientY, dir = Math.sign(dy); ty = null
-if (Math.abs(dy) > 40 && intercept(dir) && !busy) page(dir)
+if (Math.abs(dy) > 24 && intercept(dir) && !busy) page(dir)
 }, { passive: true })
 lenis.on('scroll', () => { if (busy) return; clearTimeout(t); t = setTimeout(() => {
-if (busy || performance.now() < lockUntil) return
+if (busy || performance.now() < lockUntil || !menu.hasAttribute('hidden')) return
 const y = lenis.scroll, { pts, free } = map()
 if (free.some(([a, b]) => y > a + 1 && y < b - 1) || pts.some(p => Math.abs(p - y) < 2)) return
 const near = pts.reduce((m, p) => Math.abs(p - y) < Math.abs(m - y) ? p : m, pts[0])
-busy = true; setTimeout(() => { busy = false }, 520)
-lenis.scrollTo(near, { duration: .42, onComplete: () => { busy = false } })
+busy = true; guard = setTimeout(done, 700)
+lenis.scrollTo(near, { duration: .42, force: true, onComplete: done })
 }, 120) })
+addEventListener('visibilitychange', () => { if (document.hidden) done() })
 }
 function boot() {
 if (reduced || !window.gsap || !window.ScrollTrigger) return
