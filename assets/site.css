@@ -189,9 +189,10 @@ padding: calc(var(--hdr) + var(--s4)) 0 var(--s6); }
 .contact__btn { grid-column: 1 / 5; }
 .contact__quiet { grid-column: 1 / 5; justify-items: end; text-align: right; }
 }
-.credit { position: absolute; z-index: 1; left: var(--m); bottom: var(--s3); margin: 0; font-size: var(--t-xs); color: var(--ink-2); }
-.credit a { display: inline-flex; align-items: center; column-gap: .4em; border-bottom: 1px solid transparent; transition: border-color .3s, opacity .3s; }
-.credit a:hover { border-color: currentColor; }
+.credit { position: absolute; z-index: 1; right: var(--m); bottom: var(--s3); margin: 0;
+font-size: clamp(11px, .9vw, 13px); letter-spacing: .02em; color: var(--ink); opacity: .42; }
+.credit a { display: inline-block; transition: transform .3s var(--ease); }
+.credit a:hover { transform: scale(1.1); }
 @media (max-width: 760px) { .credit { bottom: calc(var(--s2) + var(--bar, 0px)); } }
 .field::after {
 content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .06; mix-blend-mode: multiply;
